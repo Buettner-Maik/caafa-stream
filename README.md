@@ -4,9 +4,9 @@ This repository holds the python code for a paper relating to active feature acq
 
 ## Structure of the Repository
 
-additions - additional code not part of framework that was used for the experiments and plots
+additions - additional, messy code not part of framework that was used for the experiments and plots
 
-data - the preprocessed datasets that were used for the runs
+data - the datasets that were used for the runs
 
 osm - core code
 
@@ -16,28 +16,36 @@ requirements.txt - project requirements
 
 The datasets used in the corresponding paper can be found on the UCI website http://archive.ics.uci.edu/ml/datasets.html
 
-Preprocessed versions of them are found under data/csv/
+and on the MOA website https://moa.cms.waikato.ac.nz/datasets/
 
-The adult and intrusion data sets have their raw_data.pkl.gzip files further zipped and have to be unpacked to be used
+The cfpdss dataset was created using the additions/gen_correlated_dataset.py script
+
+Preprocessed versions of them are found under data/csv/
 
 ## Running the code
 
 Run code by creating a Framework class in osm/data_streams/algorithm/framework.py and executing process_data_stream()
 
-If unclear may use additions/data_prepare as guideline how to setup a run
+If unclear use additions/data_prepare.py DataSet class as guideline on how to setup a run
 
-The permutations used to produce the paper results can be found within data/_dataset_/prepared as zip files
+For further ease of use consider the use_example.bat that explains how to use the data_prepare.py code that can launch various combinations of experiment runs
 
 ## Where is what
 
 Framework Class, entry point: osm/data_streams/algorithm/framework.py
 
-Active Feature Acquisition: osm/data_streams/active_feature_acquisition/
+Active Feature Acquisition methods: osm/data_streams/active_feature_acquisition/
+
+The Supervised Merit Ranking methods are found under: osm/data_streams/active_feature_acquisition/supervised_merit_ranking/
+
+Feature Set Selection methods: osm/data_streams/active_feature_acquistion/supervised_merit_ranking/smr_feature_set_selection.py
 
 Active Learner: osm/data_streams/active_learner/
 
 AFA budget managers; not used by active learners: osm/data_streams/budget_manager/
 
-Oracle: osm/data_streams/oracle/
+FPI imputer: osm/data_streams/imputer/PairImputer.py
+
+FPITS method: osm/data_streams/active_feature_acquisition/supervised_merit_ranking/fpi_aided.py
 
 Windows: osm/data_streams/windows/
