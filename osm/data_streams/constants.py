@@ -40,4 +40,9 @@ budget_used = "budget used"
 budget = "budget"
 budget_spent = "budget spent"
 
+# feature pair imputer stats
+feature_pair_imputer_stats = "Feature Pair Imputer Statistics"
+budget_saved = "budget saved"
+acquisitions_skipped = "acquisitions skipped"
+
 window_data_filename = "window_data.pkl.gzip"

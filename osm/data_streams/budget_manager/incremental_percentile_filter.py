@@ -5,7 +5,7 @@ import math
 from osm.data_streams.budget_manager.abstract_budget_manager import AbstractBudgetManager
 
 #minimalist value to be added to values to avoid same value sorting
-epsilon = 1 / (2 ** 20)
+#epsilon = 1 / (2 ** 20)
 
 class IncrementalPercentileFilter(AbstractBudgetManager):
     def __init__(self, budget_threshold, window_size):
@@ -31,12 +31,12 @@ class IncrementalPercentileFilter(AbstractBudgetManager):
         adds a value to its list and returns whether to acquire the value or not
         :param value: a float value akin to a merit or quality
         """
-        if not isinstance(value, np.float):
+        if not isinstance(value, float):
             raise ValueError("value must be a float")
 
         self.counter = self.counter + 1
         #randomize to ensure no equal values
-        value += np.random.uniform() * epsilon
+        #value += np.random.uniform() * epsilon
         i = (self.counter-1) % self.window_size
 
         #replace oldest value if window size reached
@@ -78,12 +78,12 @@ class TrendCorrectedIncrementalPercentileFilter(AbstractBudgetManager):
         adds a value to its list and returns whether to acquire the value or not
         :param value: a float value akin to a merit or quality
         """
-        if not isinstance(value, np.float):
+        if not isinstance(value, float):
             raise ValueError("value must be a float")
         
         self.counter += 1
         #randomize to ensure no equal values
-        value += np.random.uniform() * epsilon
+        #value += np.random.uniform() * epsilon
         i = (self.counter - 1) % self.window_size
         
         old_value = self.values_list[i]

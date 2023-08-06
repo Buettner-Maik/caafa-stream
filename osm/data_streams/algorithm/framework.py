@@ -38,8 +38,10 @@ class FrameWork(AbstractBaseClass):
                  window=None,
                  evaluation_strategy=None,
                  results_path="",
+                 post_label_call=None,
                  pre_folder_name="",
                  post_folder_name="",
+                 overwrite_summary=False,
                  debug=True) -> None:
 
         """
@@ -55,6 +57,8 @@ class FrameWork(AbstractBaseClass):
         :param evaluation_strategy: the evaluation strategy to be used. Default: prequential evaluation
         :param window: The type of Window to use
         :param results_path: Specify to indicate where results folder will be saved. Default: directory of summary file
+        :param post_label_call: will call this function on the data once it is ready for adding to the window
+        :param overwrite_summary: will skip checking whether a summary file already exists and overwrite it instead of raising an error
         """
         super().__init__()
         if summary_file is None:
@@ -99,6 +103,7 @@ class FrameWork(AbstractBaseClass):
             # default
             evaluation_strategy = Prequential(target_col_name)
 
+        self.overwrite_summary = overwrite_summary
         self.summary = None
         self.base_estimator = base_estimator
         self.feature_pipeline = feature_pipeline
@@ -110,6 +115,7 @@ class FrameWork(AbstractBaseClass):
         self.target_col_name = target_col_name
         self.evaluation_strategy = evaluation_strategy
         self.classes = None
+        self.post_label_call = post_label_call
 
         # paths
         self.summary_filename = os.path.basename(summary_file)           
@@ -189,10 +195,12 @@ class FrameWork(AbstractBaseClass):
         Initialize the data stream
         """
 
-        if os.path.isfile(os.path.join(self.dir_result, self.summary_filename)):
+        if not self.overwrite_summary and os.path.isfile(os.path.join(self.dir_result, self.summary_filename)):
             # restore if part of the stream is already processed
-            self.log("Restoring the window state")
-            self.restore_state()
+            #self.log("Restoring the window state")
+            #self.restore_state()
+            
+            raise ValueError(f'{os.path.join(self.dir_result, self.summary_filename)} already exists.')
         else:
             self.log("Initializing")
 
@@ -379,17 +387,24 @@ class FrameWork(AbstractBaseClass):
             # sample data
             labeled_data = self.sample_data(index=index, test_data=acquired_data)
 
+            # do flexible stuff with the data in this call
+            # mainly for imputer train
+            if self.post_label_call is not None:
+                self.post_label_call(labeled_data)
+
             # add labeled data to window
             self.window.add(labeled_data)
 
             # save the state
-            self.save_state(index=index)
+            #self.save_state(index=index)
 
             # train for the next iteration
             self.train(index=index)
 
             # send console message
             self.log(message=str.format("Index: {0}\tProcess Completed", index))
+
+        self.save_state(index=index)
 
     def save_state(self, index):
         """

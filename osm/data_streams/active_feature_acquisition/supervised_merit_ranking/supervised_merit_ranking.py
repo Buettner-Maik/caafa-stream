@@ -128,19 +128,6 @@ class AbstractSMR(AbstractActiveFeatureAcquisitionStrategy):
         self.categories = categories        
         self.initialized = False
 
-#    def _isNumerical(self, data, column):
-#        """
-#        check whether a column in a DataFrame is numerical
-#        """
-#        return is_numeric_dtype(data[column])#column.dtype)
-#
-#    def _isCategorical(self, data, column):
-#        """
-#        check whether a column in a DataFrame is categorical
-#        """
-#        return not self._isNumerical(data, column)#data.dtypes[column].name == 'category'        
-#        
-
     def _initialize(self, data):
         """
         determines labels and numerical / categorical columns on first run
@@ -190,7 +177,7 @@ class AbstractSMR(AbstractActiveFeatureAcquisitionStrategy):
         self._initialize_queried(self.cat_cols + self.num_cols)
         self.initialized = True
 
-    def _get_quality(self, inst, merits, acq_merits=[]):
+    def _get_quality(self, inst, merits, acq_merits={}):
         """
         quality is the average of merits of all features known within an instance
         used by IPF when evaluating an acquisition candidate
@@ -204,7 +191,7 @@ class AbstractSMR(AbstractActiveFeatureAcquisitionStrategy):
             i_merit = 0
             known_features = 0
         else:
-            i_merit = sum(acq_merits)
+            i_merit = sum(acq_merits.values())
             known_features = len(acq_merits)
         for key, item in merits.items():
             if not self.isnan(inst[key]):
@@ -215,7 +202,7 @@ class AbstractSMR(AbstractActiveFeatureAcquisitionStrategy):
             return 0
         return i_merit / known_features
 
-    def _get_quality_gain(self, inst, merits, acq_merits=[]):
+    def _get_quality_gain(self, inst, merits, acq_merits={}):
         """
         the difference of quality before acquiring additional features versus after 
         for a particular instance
@@ -237,7 +224,7 @@ class AbstractSMR(AbstractActiveFeatureAcquisitionStrategy):
                 pre_known += 1
         pre_quali = pre_merit / pre_known if pre_known != 0 else 0
         
-        pos_merit = sum(acq_merits) + pre_merit
+        pos_merit = sum(acq_merits.values()) + pre_merit
         pos_known = len(acq_merits) + pre_known
         pos_quali = pos_merit / pos_known
         
@@ -294,8 +281,8 @@ class AbstractSMR(AbstractActiveFeatureAcquisitionStrategy):
         """
         pass
     
-    def _get_keys(self, listlist, index):
-        return [a[index] for a in listlist]
+    #def _get_keys(self, listlist, index):
+    #    return [a[index] for a in listlist]
     
     def expected_total_batch_costs(self, batch_size=1):
         return sum([misses / self.instances_processed * self.acquisition_costs[feature] for feature, misses in self.miss_counts.items()]) * batch_size
@@ -318,14 +305,14 @@ class AbstractSMR(AbstractActiveFeatureAcquisitionStrategy):
                 self.budget_manager.add_budget(self._bgain_batch)
             
             if self.dynamic_budget_threshold and self.instances_processed > 0:
-                #dynamic budget threshold
-                i_exp = self.feature_selection.get_expected_total_inst_cost(self)
-                exp_threshold = self._bgain_inst / i_exp
-                used_budget_ratio = self.budget_manager.used_budget()
-                new_threshold = exp_threshold / used_budget_ratio
-                over_budget_rate = math.floor((used_budget_ratio - 1) / 0.0625) + 2
-                if used_budget_ratio > 1: new_threshold /= over_budget_rate
-                self.budget_manager.budget_threshold = min(new_threshold, 1)
+                self.budget_manager.budget_threshold = self.get_dynamic_threshold(self.feature_selection.get_expected_total_inst_cost(self))
+                # i_exp = self.feature_selection.get_expected_total_inst_cost(self)
+                # exp_threshold = self._bgain_inst / i_exp
+                # used_budget_ratio = self.budget_manager.used_budget()
+                # new_threshold = exp_threshold / used_budget_ratio
+                # over_budget_rate = math.floor((used_budget_ratio - 1) / 0.0625) + 2
+                # if used_budget_ratio > 1: new_threshold /= over_budget_rate
+                # self.budget_manager.budget_threshold = min(new_threshold, 1)
                 
                 #print(i_exp, exp_threshold, new_threshold)
             
@@ -347,13 +334,13 @@ class AbstractSMR(AbstractActiveFeatureAcquisitionStrategy):
                 acq_merits, acq_costs = self.feature_selection.get_acquisition_feature_set(self, miss_feature_merits)
                 
                 if any(acq_merits):
-                    quality = self._get_quality_gain(inst=row, merits=self.merits, acq_merits=[m[1] for m in acq_merits])                
+                    quality = self._get_quality_gain(inst=row, merits=self.merits, acq_merits=acq_merits)
                 
                     if self._budget_acq:
                         self.budget_manager.add_budget(self._bgain_acq)
                     
                     if self.budget_manager.acquire(quality, acq_costs):
-                        for feature in self._get_keys(acq_merits, 0):     
+                        for feature in acq_merits:
                             self.queried[feature] += 1
                             #get feature and replace current inst in iteration and data
                             feature_val = self.get_feature(inst=row, column=feature)

@@ -25,7 +25,7 @@ class AbstractActiveFeatureAcquisitionStrategy(AbstractBaseClass):
         """
         super().__init__()
 
-        #if not isinstance(budget, np.float):
+        #if not isinstance(budget, float):
         #    raise ValueError("The budget should be a float between [0,1]")
 
         #if budget < 0 or budget > 1:
@@ -74,6 +74,18 @@ class AbstractActiveFeatureAcquisitionStrategy(AbstractBaseClass):
             elif btime == 'acq':
                 self._budget_acq = True
                 self._bgain_acq = bgain
+
+    def _isCategorical(self, data, col):
+        """
+        returns true if column col of data is categorical data
+        """
+        return data[col].dtype.kind not in "iufcb"
+        
+    def _isNumerical(self, data, col):
+        """
+        returns true if column col of data is numerical data
+        """
+        return data[col].dtype.kind in "iufcb"
 
     def get_budget_string(self):
         if self._budget_once or self._budget_batch or self._budget_inst or self._budget_acq:
@@ -124,6 +136,26 @@ class AbstractActiveFeatureAcquisitionStrategy(AbstractBaseClass):
         TODO: export get_feature as separate module or make choice to use separate data
         """
         return inst[column + '_org']
+
+    def get_dynamic_threshold(self, i_exp, penalty_step_size=1/32, penalty_gain=1):
+        """
+        returns a new dynamic threshold based on
+        the expected cost of total feature set acquisition,
+        the current budget usage of the budget manager,
+        and a penalty factor
+        :param i_exp: the expected cost of total feature set acquisition
+        :param penalty_step_size: increases denominator by the number of steps over the budget usage ratio to counteract biases in expected feature set acquisitions
+        :param penalty_gain: increases denominator by this amount per the number of steps over the budget usage
+        """
+        if i_exp == 0: return self.budget_manager.budget_threshold
+        
+        exp_threshold = self._bgain_inst / i_exp
+        used_budget_ratio = self.budget_manager.used_budget()
+        new_threshold = exp_threshold / used_budget_ratio
+        over_budget_rate = 1 + (math.floor((used_budget_ratio - 1) / penalty_step_size) + 1) * penalty_gain
+        # e.g. [1, 1+p) -> 1/2, [1+p, 1+2p) -> 1/3, ...
+        if used_budget_ratio > 1: new_threshold /= over_budget_rate
+        return(min(new_threshold, 1))
 
     @abstractmethod
     def get_data(self, data):

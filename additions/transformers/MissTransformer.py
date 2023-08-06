@@ -25,7 +25,7 @@ class MissTransformer(TransformerMixin):
             raise ValueError("x must be a pandas.DataFrame object")
 
         for col, value in self.miss_chances.items():
-            print('Insert NaNs in ' + col)
+            #print('Insert NaNs in ' + col)
             X[col + '_org'] = X[col]
             colindex = X.columns.get_loc(col)
             rans = np.random.uniform(0.0, 1.0, X.shape[0])

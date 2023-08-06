@@ -15,7 +15,7 @@ class AbstractBudgetManager(AbstractBaseClass):
         """
         super().__init__()
 
-        if not isinstance(budget_threshold, np.float):
+        if not isinstance(budget_threshold, float):
             raise ValueError("The budget_threshold should be a float between [0,1]")
 
         if budget_threshold < 0 or budget_threshold > 1:

@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from multiprocessing.sharedctypes import Value
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 import math
+import numpy as np
 import operator
 import copy
 import osm.data_streams.constants as const
@@ -46,9 +48,6 @@ class AbstractAED(AbstractSMR):
         Sets self.initialized to true
         :param data: the data all columns and categories will be based on
         """
-        if not isinstance(data, pd.DataFrame):
-            raise ValueError("Provided data is not a pandas.DataFrame")
-
         super()._initialize(data)
 
         #init normalize dicts
@@ -412,3 +411,52 @@ class SingleWindowAED(AbstractAED):
     
     def get_name(self):
         return "SWAED+" + self.feature_selection.get_name()
+
+class SWAEDFeatureCorrelationCorrected(SingleWindowAED):
+    def __init__(self, window, pipeline, target_col_name, budget_manager, feature_selection, acq_set_size, dynamic_budget_threshold=False, categories=None, acquisition_costs={}, budget_option=[('inst', 1)], debug=True):
+        """
+        Active Feature Acquisition strategy that ranks features accoring to average euclidean distance
+        Requires the exact categories and possible category values beforehand
+        :param window: set as same window as used in framework
+        :param feature_selection: the method by which the feature set for acquisition is selected
+        :param dynamic_budget_threshold: whether the budget threshold should be dynamically adjusted before each batch
+        :param categories: provide categories for all categorical features as dict 
+        alternatively if left None make initally labeled data in window represent 
+        all categorical features at least once 
+        """
+        super().__init__(window=window, 
+                            target_col_name=target_col_name,
+                            budget_manager=budget_manager,
+                            feature_selection=feature_selection,
+                            acq_set_size=acq_set_size, 
+                            dynamic_budget_threshold=dynamic_budget_threshold, 
+                            categories=categories, 
+                            acquisition_costs=acquisition_costs, 
+                            budget_option=budget_option, 
+                            debug=debug)
+        self.pipeline = pipeline
+        self.correlations = None
+    
+    def _get_miss_merits(self, inst, merits):
+        """
+        returns all merits of features missing in an instance
+        :param merits: the global feature merits
+        """
+        miss_merits = {}
+        known_features = [(1 if not self.isnan(inst[col]) else 0) for col in self.num_cols]
+        for i, col in enumerate(self.num_cols):
+            if not known_features[i]:
+                min_vals = np.extract(known_features, self.correlations[i])
+                miss_merits[col] = merits[col] * np.min(min_vals) if any(min_vals) else merits[col]
+        return miss_merits
+        #return {col:merits[col] * np.min(np.extract(known_features, self.correlations[i])) for i, col in enumerate(self.num_cols) if not known_features[i]}
+
+    def _on_new_batch(self, data):
+        super()._on_new_batch(data)
+        dt = self.pipeline.fit_transform(data, data[self.target_col_name])
+        self.correlations = 1 - np.abs(np.corrcoef(dt.T))
+        #np.corrcoef(data[self.num_cols].T)
+
+    def get_name(self):
+        return "SWAEDFCC+" + self.feature_selection.get_name()
+    
