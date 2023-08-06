@@ -20,8 +20,6 @@ and on the MOA website https://moa.cms.waikato.ac.nz/datasets/
 
 The cfpdss dataset was created using the additions/gen_correlated_dataset.py script
 
-Preprocessed versions of them are found under data/csv/
-
 ## Running the code
 
 Run code by creating a Framework class in osm/data_streams/algorithm/framework.py and executing process_data_stream()
