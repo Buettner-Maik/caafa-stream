@@ -24,7 +24,7 @@ The cfpdss dataset was created using the additions/gen_correlated_dataset.py scr
 
 Run code by creating a Framework class in osm/data_streams/algorithm/framework.py and executing process_data_stream()
 
-If unclear use additions/data_prepare.py DataSet class as guideline on how to setup a run
+If unclear use additions/data_prepare.py Dataset class as guideline on how to setup a run
 
 For further ease of use consider the use_example.bat that explains how to use the data_prepare.py code that can launch various combinations of experiment runs
 
